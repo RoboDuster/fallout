@@ -102,9 +102,9 @@ Hooks.once('init', async function () {
 
   // Register sheet application classes
   Actors.unregisterSheet('core', ActorSheet)
-  Actors.registerSheet('fallout', FalloutActorSheet, { makeDefault: true })
+  Actors.registerSheet('fallout-dusty', FalloutActorSheet, { makeDefault: true })
   Items.unregisterSheet('core', ItemSheet)
-  Items.registerSheet('fallout', FalloutItemSheet, { makeDefault: true })
+  Items.registerSheet('fallout-dusty', FalloutItemSheet, { makeDefault: true })
 
   // Preload Handlebars templates.
   return preloadHandlebarsTemplates()

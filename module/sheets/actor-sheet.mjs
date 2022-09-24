@@ -12,7 +12,7 @@ export class FalloutActorSheet extends ActorSheet {
   static get defaultOptions() {
     return mergeObject(super.defaultOptions, {
       classes: ['fallout', 'sheet', 'actor'],
-      template: 'systems/fallout/templates/actor/actor-sheet.html',
+      template: 'systems/fallout-dusty/templates/actor/actor-sheet.html',
       width: 720,
       height: 780,
       tabs: [
@@ -27,7 +27,7 @@ export class FalloutActorSheet extends ActorSheet {
 
   /** @override */
   get template() {
-    return `systems/fallout/templates/actor/actor-${this.actor.data.type}-sheet.html`
+    return `systems/fallout-dusty/templates/actor/actor-${this.actor.type}-sheet.html`
   }
 
   /* -------------------------------------------- */
@@ -40,25 +40,26 @@ export class FalloutActorSheet extends ActorSheet {
     // editable, the items array, and the effects array.
     const context = super.getData()
     // Use a safe clone of the actor data for further operations.
-    const actorData = context.actor.data
+    const safeContext = context
+    const actorData = safeContext.actor
 
     // Add the actor's data to context.data for easier access, as well as flags.
-    context.data = actorData.data
-    context.flags = actorData.flags
+    //context.data = actorData.system
+    //context.flags = actorData.flags
 
     // Prepare character data and items.
-    if (actorData.type == 'character' || actorData.type == 'robot') {
+    if (context.actor.type == 'character' || context.actor.type == 'robot') {
       this._prepareItems(context)
       this._prepareCharacterData(context)
     }
 
     // Prepare NPC data and items.
-    if (actorData.type == 'npc') {
+    if (context.actor.type == 'npc') {
       this._prepareItems(context)
     }
 
     // Prepare Creature data and items.
-    if (actorData.type == 'creature') {
+    if (context.actor.type == 'creature') {
       this._prepareItems(context)
     }
 
@@ -81,12 +82,12 @@ export class FalloutActorSheet extends ActorSheet {
    */
   _prepareCharacterData(context) {
     // Handle ability scores.
-    for (let [k, v] of Object.entries(context.data.attributes)) {
+    for (let [k, v] of Object.entries(this.actor.system.attributes)) {
       v.label = game.i18n.localize(CONFIG.FALLOUT.attributes[k]) ?? k
     }
 
     let allInjuries = []
-    for (const [key, bp] of Object.entries(this.actor.data.data.body_parts)) {
+    for (const [key, bp] of Object.entries(this.actor.system.body_parts)) {
       allInjuries.push.apply(allInjuries, bp.injuries)
     }
     context.treatedInjuriesCount = allInjuries.filter((i) => i == 1).length
@@ -162,13 +163,13 @@ export class FalloutActorSheet extends ActorSheet {
     })
     context.skills = skills
 
-    let clothing = apparel.filter((a) => a.data.appareltype == 'clothing')
-    let outfit = apparel.filter((a) => a.data.appareltype == 'outfit')
-    let headgear = apparel.filter((a) => a.data.appareltype == 'headgear')
-    let armor = apparel.filter((a) => a.data.appareltype == 'armor')
-    let powerArmor = apparel.filter((a) => a.data.appareltype == 'powerArmor')
-    let plating = robotApparel.filter((a) => a.data.appareltype == 'plating')
-    let robotArmor = robotApparel.filter((a) => a.data.appareltype == 'armor')
+    let clothing = apparel.filter((a) => a.system.appareltype == 'clothing')
+    let outfit = apparel.filter((a) => a.system.appareltype == 'outfit')
+    let headgear = apparel.filter((a) => a.system.appareltype == 'headgear')
+    let armor = apparel.filter((a) => a.system.appareltype == 'armor')
+    let powerArmor = apparel.filter((a) => a.system.appareltype == 'powerArmor')
+    let plating = robotApparel.filter((a) => a.system.appareltype == 'plating')
+    let robotArmor = robotApparel.filter((a) => a.system.appareltype == 'armor')
     context.allApparel = [
       { apparelType: 'clothing', list: clothing },
       { apparelType: 'outfit', list: outfit },
@@ -198,7 +199,7 @@ export class FalloutActorSheet extends ActorSheet {
     // NPC and Creature Inventory = all physical items that are not weapons
     if (this.actor.type == 'npc' || this.actor.type == 'creature') {
       context.inventory = context.items.filter((i) => {
-        return i.type !== 'weapon' && i.data.weight != null
+        return i.type !== 'weapon' && i.system.weight != null
       })
     }
     if (this.actor.type == 'character') {
@@ -241,9 +242,9 @@ export class FalloutActorSheet extends ActorSheet {
       const item = this.actor.items.get(li.data('itemId'))
       this._onRollSkill(
         item.name,
-        item.data.data.value,
-        this.actor.data.data.attributes[item.data.data.defaultAttribute].value,
-        item.data.data.tag,
+        item.system.value,
+        this.actor.system.attributes[item.system.defaultAttribute].value,
+        item.system.tag,
       )
     })
     // Change Skill Rank value
@@ -258,7 +259,7 @@ export class FalloutActorSheet extends ActorSheet {
     html.find('.skill .item-skill-tag').click(async (ev) => {
       const li = $(ev.currentTarget).parents('.item')
       const item = this.actor.items.get(li.data('itemId'))
-      let updatedItem = { _id: item.id, data: { tag: !item.data.data.tag } }
+      let updatedItem = { _id: item.id, data: { tag: !item.system.tag } }
       await this.actor.updateEmbeddedDocuments('Item', [updatedItem])
     })
 
@@ -403,14 +404,14 @@ export class FalloutActorSheet extends ActorSheet {
       //return;
       let index = ev.currentTarget.dataset['index']
       let bodypart = ev.currentTarget.dataset['bodypart']
-      let injuries = this.actor.data.data.body_parts[bodypart].injuries
+      let injuries = this.actor.system.body_parts[bodypart].injuries
       let newInjuries = [...injuries]
       newInjuries[index] = status == 2 ? 0 : 2
       //newInjuries[index] = 2;
       let newStatus = this._getBodyPartStatus(newInjuries)
       let _update = {}
-      let _dataInjuries = `data.body_parts.${bodypart}.injuries`
-      let _dataStatus = `data.body_parts.${bodypart}.status`
+      let _dataInjuries = `system.body_parts.${bodypart}.injuries`
+      let _dataStatus = `system.body_parts.${bodypart}.status`
       _update[_dataInjuries] = newInjuries
       _update[_dataStatus] = newStatus
       await this.actor.update(_update)
@@ -421,12 +422,12 @@ export class FalloutActorSheet extends ActorSheet {
       //return;
       let index = ev.currentTarget.dataset['index']
       let bodypart = ev.currentTarget.dataset['bodypart']
-      let injuries = this.actor.data.data.body_parts[bodypart].injuries
+      let injuries = this.actor.system.body_parts[bodypart].injuries
       let newInjuries = [...injuries]
       newInjuries[index] = status == 1 ? 0 : 1
       let newStatus = this._getBodyPartStatus(newInjuries)
-      let _dataInjuries = `data.body_parts.${bodypart}.injuries`
-      let _dataStatus = `data.body_parts.${bodypart}.status`
+      let _dataInjuries = `system.body_parts.${bodypart}.injuries`
+      let _dataStatus = `system.body_parts.${bodypart}.status`
       let _update = {}
       _update[_dataInjuries] = newInjuries
       _update[_dataStatus] = newStatus
@@ -447,23 +448,23 @@ export class FalloutActorSheet extends ActorSheet {
       let rollName = item.name
       if (item.actor?.type == 'creature') {
         skillName = game.i18n.localize(
-          `FALLOUT.CREATURE.${item.data.data.skill}`,
+          `FALLOUT.CREATURE.${item.system.skill}`,
         )
-        skill = item.actor.data.data[item.data.data.skill]
+        skill = item.actor.system[item.system.skill]
         skill['tag'] = true
-        attribute = item.actor.data.data[item.data.data.attribute]
+        attribute = item.actor.system[item.system.attribute]
       } else {
         skillName =
-          CONFIG.FALLOUT.WEAPONS.weaponSkill[item.data.data.weaponType]
+          CONFIG.FALLOUT.WEAPONS.weaponSkill[item.system.weaponType]
         let skillItem = item.actor.items.find((i) => i.name == skillName)
-        if (skillItem) skill = skillItem.data.data
+        if (skillItem) skill = skillItem.system
         else
           skill = {
             value: 0,
             tag: false,
             defaultAttribute: 'str',
           }
-        attribute = item.actor.data.data.attributes[skill.defaultAttribute]
+        attribute = item.actor.system.attributes[skill.defaultAttribute]
       }
       game.fallout.Dialog2d20.createDialog({
         rollName: rollName,
@@ -482,8 +483,8 @@ export class FalloutActorSheet extends ActorSheet {
       const newHealthValue = $(ev.currentTarget).val()
       let apparel = this.actor.items.get(apparelId)
       if (apparel) {
-        if (apparel.data.data.appareltype == 'powerArmor') {
-          apparel.update({ 'data.health.value': newHealthValue })
+        if (apparel.system.appareltype == 'powerArmor') {
+          apparel.update({ 'system.health.value': newHealthValue })
         }
       }
     })
@@ -492,19 +493,19 @@ export class FalloutActorSheet extends ActorSheet {
     html.find('.weapon-roll-damage').click((ev) => {
       const li = $(ev.currentTarget).parents('.item')
       const item = this.actor.items.get(li.data('item-id'))
-      let numOfDice = parseInt(item.data.data.damage.rating)
+      let numOfDice = parseInt(item.system.damage.rating)
       if (
-        item.data.data.weaponType == 'meleeWeapons' ||
-        item.data.data.weaponType == 'unarmed'
+        item.system.weaponType == 'meleeWeapons' ||
+        item.system.weaponType == 'unarmed'
       ) {
-        let dmgBonus = this.actor.data.data?.meleeDamage?.base ?? 0
+        let dmgBonus = this.actor.system?.meleeDamage?.base ?? 0
         numOfDice += dmgBonus
       }
-      let rollName = item.data.name
+      let rollName = item.system.name
       game.fallout.DialogD6.createDialog({
         rollName: rollName,
         diceNum: numOfDice,
-        weapon: item.data.toObject(),
+        weapon: item.toObject(),
       })
     })
 
@@ -590,10 +591,10 @@ export class FalloutActorSheet extends ActorSheet {
     let item = this.actor.items.get(li.data('itemId'))
     let moreInfo = ''
 
-    if (item.data.data.effect != null) {
-      moreInfo = item.data.data.effect
+    if (item.system.effect != null) {
+      moreInfo = item.system.effect
     } else {
-      moreInfo = item.data.data.description
+      moreInfo = item.system.description
     }
     // Toggle summary
     if (li.hasClass('expanded')) {
@@ -624,7 +625,7 @@ export class FalloutActorSheet extends ActorSheet {
     return {
       _id: id,
       data: {
-        stashed: !item.data.data.stashed,
+        stashed: !item.system.stashed,
       },
     }
   }
@@ -634,7 +635,7 @@ export class FalloutActorSheet extends ActorSheet {
     return {
       _id: id,
       data: {
-        equipped: !item.data.data.equipped,
+        equipped: !item.system.equipped,
       },
     }
   }
@@ -644,7 +645,7 @@ export class FalloutActorSheet extends ActorSheet {
     return {
       _id: id,
       data: {
-        powered: !item.data.data.powered,
+        powered: !item.system.powered,
       },
     }
   }
@@ -654,7 +655,7 @@ export class FalloutActorSheet extends ActorSheet {
     return {
       _id: id,
       data: {
-        favorite: !item.data.data.favorite,
+        favorite: !item.system.favorite,
       },
     }
   }

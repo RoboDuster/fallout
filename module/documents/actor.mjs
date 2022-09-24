@@ -24,10 +24,10 @@ export class FalloutActor extends Actor {
    * is queried and has a roll executed directly from it).
    */
   prepareDerivedData() {
-    const actorData = this.data
-    const data = actorData.data
+    const actorData = this
+    const actorSystem = actorData.system
     const flags = actorData.flags.fallout || {}
-
+	
     // Make separate methods for each Actor type (character, npc, etc.) to keep
     // things organized.
     this._prepareCharacterData(actorData)
@@ -42,26 +42,29 @@ export class FalloutActor extends Actor {
   // CHARACTER
   _prepareCharacterData(actorData) {
     if (actorData.type !== 'character') return
-    const data = actorData.data
+    const actorSystem = actorData.system
     this._calculateCharacterBodyResistance(actorData)
-    data.favoriteWeapons = actorData.items.filter(
-      (i) => i.type == 'weapon' && i.data.data.favorite,
+    actorSystem.favoriteWeapons = actorData.items.filter(
+      (i) => i.type == 'weapon' && i.system.favorite,
     )
     // Encumbrance
-    data.carryWeight.base =
-      150 + parseInt(this.data.data.attributes.str.value) * 10
-    data.carryWeight.value =
-      parseInt(data.carryWeight.base) + parseInt(data.carryWeight.mod)
-    data.totalWeight = this._getItemsTotalWeight()
-    data.encumbranceLevel = 0
-    if (data.totalWeight > data.carryWeight.value) {
-      let dif = data.totalWeight - data.carryWeight.value
-      data.encumbranceLevel = Math.ceil(dif / 50)
+    actorSystem.carryWeight.base =
+      150 + parseInt(actorSystem.attributes.str.value) * 10
+    actorSystem.carryWeight.value =
+      parseInt(actorSystem.carryWeight.base) + parseInt(actorSystem.carryWeight.mod)
+    actorSystem.totalWeight = this._getItemsTotalWeight()
+    actorSystem.encumbranceLevel = 0
+    if (actorSystem.totalWeight > actorSystem.carryWeight.value) {
+      let dif = actorSystem.totalWeight - actorSystem.carryWeight.value
+      actorSystem.encumbranceLevel = Math.ceil(dif / 50)
     }
+	
+	//XP totals
+	actorSystem.level.nextLevelXP = (actorSystem.level.value*(actorSystem.level.value+1)/2)*100;
   }
 
   _calculateCharacterBodyResistance(actorData) {
-    const data = actorData.data
+    const actorSystem = actorData.system
     //  ! CHECK for the OUTFIT
     // Prep Body Locations
     let outfitedLocations = {}
@@ -78,13 +81,13 @@ export class FalloutActor extends Actor {
         let pow = actorData.items.find(
           (i) =>
             i.type == 'apparel' &&
-            i.data.data.appareltype == 'powerArmor' &&
-            i.data.data.equipped &&
-            i.data.data.powered &&
-            i.data.data.location[k] == true,
+            i.system.appareltype == 'powerArmor' &&
+            i.system.equipped &&
+            i.system.powered &&
+            i.system.location[k] == true,
         )
         if (pow && !outfitedLocations[k]) {
-          outfitedLocations[k] = duplicate(pow.data.toObject())
+          outfitedLocations[k] = duplicate(pow.toObject())
           hasPowerArmor = false
         }
       }
@@ -97,12 +100,12 @@ export class FalloutActor extends Actor {
         let armor = actorData.items.find(
           (i) =>
             i.type == 'apparel' &&
-            i.data.data.appareltype == 'armor' &&
-            i.data.data.equipped &&
-            i.data.data.location[k] == true,
+            i.system.appareltype == 'armor' &&
+            i.system.equipped &&
+            i.system.location[k] == true,
         )
         if (armor && !outfitedLocations[k]) {
-          outfitedLocations[k] = duplicate(armor.data.toObject())
+          outfitedLocations[k] = duplicate(armor.toObject())
           hasArmor = true
         }
       }
@@ -119,13 +122,13 @@ export class FalloutActor extends Actor {
       let outfit = actorData.items.find(
         (i) =>
           i.type == 'apparel' &&
-          i.data.data.appareltype == 'outfit' &&
-          i.data.data.equipped,
+          i.system.appareltype == 'outfit' &&
+          i.system.equipped,
       )
       if (outfit) {
-        for (let [k, v] of Object.entries(outfit.data.data.location)) {
+        for (let [k, v] of Object.entries(outfit.system.location)) {
           if (v) {
-            outfitedLocations[k] = duplicate(outfit.data.toObject())
+            outfitedLocations[k] = duplicate(outfit.toObject())
           }
         }
       }
@@ -136,11 +139,11 @@ export class FalloutActor extends Actor {
       let headgear = actorData.items.find(
         (i) =>
           i.type == 'apparel' &&
-          i.data.data.appareltype == 'headgear' &&
-          i.data.data.equipped,
+          i.system.appareltype == 'headgear' &&
+          i.system.equipped,
       )
       if (headgear) {
-        outfitedLocations['head'] = duplicate(headgear.data.toObject())
+        outfitedLocations['head'] = duplicate(headgear.toObject())
       }
     }
 
@@ -148,83 +151,83 @@ export class FalloutActor extends Actor {
     let clothing = actorData.items.find(
       (i) =>
         i.type == 'apparel' &&
-        i.data.data.appareltype == 'clothing' &&
-        i.data.data.equipped,
+        i.system.appareltype == 'clothing' &&
+        i.system.equipped,
     )
     if (clothing) {
-      for (let [k, v] of Object.entries(clothing.data.data.location)) {
+      for (let [k, v] of Object.entries(clothing.system.location)) {
         if (outfitedLocations[k] && v) {
           outfitedLocations[k].name += ` over ${clothing.name}`
-          outfitedLocations[k].data.resistance.physical = Math.max(
-            parseInt(outfitedLocations[k].data.resistance.physical),
-            parseInt(clothing.data.data.resistance.physical),
+          outfitedLocations[k].system.resistance.physical = Math.max(
+            parseInt(outfitedLocations[k].system.resistance.physical),
+            parseInt(clothing.system.resistance.physical),
           )
-          outfitedLocations[k].data.resistance.energy = Math.max(
-            parseInt(outfitedLocations[k].data.resistance.energy),
-            parseInt(clothing.data.data.resistance.energy),
+          outfitedLocations[k].system.resistance.energy = Math.max(
+            parseInt(outfitedLocations[k].system.resistance.energy),
+            parseInt(clothing.system.resistance.energy),
           )
-          outfitedLocations[k].data.resistance.radiation = Math.max(
-            parseInt(outfitedLocations[k].data.resistance.radiation),
-            parseInt(clothing.data.data.resistance.radiation),
+          outfitedLocations[k].system.resistance.radiation = Math.max(
+            parseInt(outfitedLocations[k].system.resistance.radiation),
+            parseInt(clothing.system.resistance.radiation),
           )
         } else if (!outfitedLocations[k] && v) {
-          outfitedLocations[k] = duplicate(clothing.data.toObject())
+          outfitedLocations[k] = duplicate(clothing.toObject())
         }
       }
     }
 
     // ! SET BODY PARTS TO OUTFIT ADD CHARACTER BONUSES
-    for (let [k, bodyPart] of Object.entries(actorData.data.body_parts)) {
+    for (let [k, bodyPart] of Object.entries(actorData.system.body_parts)) {
       if (outfitedLocations[k]) {
         bodyPart.resistance.physical =
-          parseInt(outfitedLocations[k].data.resistance.physical) +
-          parseInt(data.resistance.physical)
+          parseInt(outfitedLocations[k].system.resistance.physical) +
+          parseInt(actorData.system.resistance.physical)
         bodyPart.resistance.energy =
-          parseInt(outfitedLocations[k].data.resistance.energy) +
-          parseInt(data.resistance.energy)
+          parseInt(outfitedLocations[k].system.resistance.energy) +
+          parseInt(actorData.system.resistance.energy)
         bodyPart.resistance.radiation =
-          parseInt(outfitedLocations[k].data.resistance.radiation) +
-          parseInt(data.resistance.radiation)
+          parseInt(outfitedLocations[k].system.resistance.radiation) +
+          parseInt(actorData.system.resistance.radiation)
       } else {
-        bodyPart.resistance.physical = parseInt(data.resistance.physical)
-        bodyPart.resistance.energy = parseInt(data.resistance.energy)
-        bodyPart.resistance.radiation = parseInt(data.resistance.radiation)
+        bodyPart.resistance.physical = parseInt(actorData.system.resistance.physical)
+        bodyPart.resistance.energy = parseInt(actorData.system.resistance.energy)
+        bodyPart.resistance.radiation = parseInt(actorData.system.resistance.radiation)
       }
     }
     // ADD OUTFITED LIST FOR DISPLAY
-    actorData.data.outfitedLocations = outfitedLocations
+    actorData.system.outfitedLocations = outfitedLocations
   }
 
   // ROBOT
   _prepareRobotData(actorData) {
     if (actorData.type !== 'robot') return
-    const data = actorData.data
+    const actorSystem = actorData.system
     this._calculateRobotBodyResistance(actorData)
-    actorData.data.favoriteWeapons = actorData.items.filter(
-      (i) => i.type == 'weapon' && i.data.data.favorite,
+    actorSystem.favoriteWeapons = actorData.items.filter(
+      (i) => i.type == 'weapon' && i.system.favorite,
     )
-    actorData.data.equippedRobotMods = actorData.items
-      .filter((i) => i.type == 'robot_mod' && i.data.data.equipped)
+    actorData.system.equippedRobotMods = actorData.items
+      .filter((i) => i.type == 'robot_mod' && i.system.equipped)
       .slice(0, 3)
-    data.carryWeight.base = 150
+    actorSystem.carryWeight.base = 150
     let robotArmors = this.items.filter((i) => {
       return i.type == 'robot_armor'
     })
     for (let i of robotArmors) {
-      data.carryWeight.base += parseInt(i.data.data.carry)
+      actorSystem.carryWeight.base += parseInt(i.system.carry)
     }
-    data.carryWeight.value =
-      parseInt(data.carryWeight.base) + parseInt(data.carryWeight.mod)
-    data.totalWeight = this._getItemsTotalWeight()
-    data.encumbranceLevel = 0
-    if (data.totalWeight > data.carryWeight.value) {
-      let dif = data.totalWeight - data.carryWeight.value
-      data.encumbranceLevel = Math.ceil(dif / 50)
+    actorSystem.carryWeight.value =
+      parseInt(actorSystem.carryWeight.base) + parseInt(actorSystem.carryWeight.mod)
+    actorSystem.totalWeight = this._getItemsTotalWeight()
+    actorSystem.encumbranceLevel = 0
+    if (actorSystem.totalWeight > actorSystem.carryWeight.value) {
+      let dif = actorSystem.totalWeight - actorSystem.carryWeight.value
+      actorSystem.encumbranceLevel = Math.ceil(dif / 50)
     }
   }
 
   _calculateRobotBodyResistance(actorData) {
-    const data = actorData.data
+    const actorSystem = actorData.system
     let outfitedLocations = {}
     for (let [k, v] of Object.entries(
       game.system.model.Actor.robot.body_parts,
@@ -238,12 +241,12 @@ export class FalloutActor extends Actor {
         let armor = actorData.items.find(
           (i) =>
             i.type == 'robot_armor' &&
-            i.data.data.appareltype == 'armor' &&
-            i.data.data.equipped &&
-            i.data.data.location[k] == true,
+            i.system.appareltype == 'armor' &&
+            i.system.equipped &&
+            i.system.location[k] == true,
         )
         if (armor && !outfitedLocations[k]) {
-          outfitedLocations[k] = duplicate(armor.data.toObject())
+          outfitedLocations[k] = duplicate(armor.toObject())
         }
       }
     }
@@ -251,69 +254,69 @@ export class FalloutActor extends Actor {
     let plating = actorData.items.find(
       (i) =>
         i.type == 'robot_armor' &&
-        i.data.data.appareltype == 'plating' &&
-        i.data.data.equipped,
+        i.system.appareltype == 'plating' &&
+        i.system.equipped,
     )
     if (plating) {
-      for (let [k, v] of Object.entries(plating.data.data.location)) {
+      for (let [k, v] of Object.entries(plating.system.location)) {
         if (outfitedLocations[k] && v) {
           outfitedLocations[k].name += ` over ${plating.name}`
-          outfitedLocations[k].data.resistance.physical =
-            parseInt(outfitedLocations[k].data.resistance.physical) +
-            parseInt(plating.data.data.resistance.physical)
-          outfitedLocations[k].data.resistance.energy =
-            parseInt(outfitedLocations[k].data.resistance.energy) +
-            parseInt(plating.data.data.resistance.energy)
-          outfitedLocations[k].data.resistance.radiation =
-            parseInt(outfitedLocations[k].data.resistance.radiation) +
-            parseInt(plating.data.data.resistance.radiation)
+          outfitedLocations[k].system.resistance.physical =
+            parseInt(outfitedLocations[k].system.resistance.physical) +
+            parseInt(plating.system.resistance.physical)
+          outfitedLocations[k].system.resistance.energy =
+            parseInt(outfitedLocations[k].system.resistance.energy) +
+            parseInt(plating.system.resistance.energy)
+          outfitedLocations[k].system.resistance.radiation =
+            parseInt(outfitedLocations[k].system.resistance.radiation) +
+            parseInt(plating.system.resistance.radiation)
         } else if (!outfitedLocations[k] && v) {
-          outfitedLocations[k] = duplicate(plating.data.toObject())
+          outfitedLocations[k] = duplicate(plating.toObject())
         }
       }
     }
 
     // ! SET BODY PARTS TO OUTFIT AND ADD CHARACTER BONUSES
-    for (let [k, bodyPart] of Object.entries(actorData.data.body_parts)) {
+    for (let [k, bodyPart] of Object.entries(actorData.system.body_parts)) {
       if (outfitedLocations[k]) {
         bodyPart.resistance.physical =
-          parseInt(outfitedLocations[k].data.resistance.physical) +
-          parseInt(data.resistance.physical)
+          parseInt(outfitedLocations[k].system.resistance.physical) +
+          parseInt(actorSystem.resistance.physical)
         bodyPart.resistance.energy =
-          parseInt(outfitedLocations[k].data.resistance.energy) +
-          parseInt(data.resistance.energy)
+          parseInt(outfitedLocations[k].system.resistance.energy) +
+          parseInt(actorSystem.resistance.energy)
         bodyPart.resistance.radiation =
-          parseInt(outfitedLocations[k].data.resistance.radiation) +
-          parseInt(data.resistance.radiation)
+          parseInt(outfitedLocations[k].system.resistance.radiation) +
+          parseInt(actorSystem.resistance.radiation)
       } else {
-        bodyPart.resistance.physical = parseInt(data.resistance.physical)
-        bodyPart.resistance.energy = parseInt(data.resistance.energy)
-        bodyPart.resistance.radiation = parseInt(data.resistance.radiation)
+        bodyPart.resistance.physical = parseInt(actorSystem.resistance.physical)
+        bodyPart.resistance.energy = parseInt(actorSystem.resistance.energy)
+        bodyPart.resistance.radiation = parseInt(actorSystem.resistance.radiation)
       }
     }
     // ADD OUTFITED LIST FOR DISPLAY
-    actorData.data.outfitedLocations = outfitedLocations
+    actorData.system.outfitedLocations = outfitedLocations
   }
 
   // Calculate Total Weight Of Items
   _getItemsTotalWeight() {
     let physicalItems = this.items.filter((i) => {
-      return !i.data.data.stashed && i.data.data.weight != null
+      return !i.system.stashed && i.system.weight != null
     })
     // remove powered powerArmor pieces for characters
-    if (this.data.type == 'character') {
+    if (this.type == 'character') {
       physicalItems = physicalItems.filter((i) => {
-        if (i.data.data.appareltype == 'powerArmor') {
-          if (!i.data.data.powered) return i
+        if (i.system.appareltype == 'powerArmor') {
+          if (!i.system.powered) return i
         } else {
           return i
         }
       })
     }
-    let physicalItemsMap = physicalItems.map((i) => i.data.toObject())
+    let physicalItemsMap = physicalItems.map((i) => i.toObject())
     let totalWeight = 0
     for (let i of physicalItemsMap) {
-      totalWeight += parseFloat(i.data.weight) * parseFloat(i.data.quantity)
+      totalWeight += parseFloat(i.system.weight) * parseFloat(i.system.quantity)
     }
     return totalWeight
   }
@@ -325,66 +328,71 @@ export class FalloutActor extends Actor {
     if (actorData.type !== 'npc') return
 
     // Make modifications to data here. For example:
-    const data = actorData.data
-    data.xp = data.cr * data.cr * 100
+    //const data = actorData.system
+    //data.xp = data.cr * data.cr * 100
   }
 
   /**
    * Override getRollData() that's supplied to rolls.
    */
   getRollData() {
-    const data = super.getRollData()
-
+    const rolldata = super.getRollData()
     // Prepare character roll data.
-    this._getCharacterRollData(data)
-    this._getNpcRollData(data)
+    this._getCharacterRollData(rolldata)
+    this._getNpcRollData(rolldata)
 
-    return data
+    return rolldata
   }
 
   /**
    * Prepare character roll data.
    */
-  _getCharacterRollData(data) {
-    if (this.data.type !== 'character' || this.data.type !== 'robot') return
+  _getCharacterRollData(rolldata) {
+    if (this.type !== 'character' && this.type !== 'robot'){
+		return
+	}
     // Copy the ability scores to the top level, so that rolls can use
     // formulas like `@str.mod + 4`.
-    if (data.attributes) {
-      for (let [k, v] of Object.entries(data.attributes)) {
-        data[k] = foundry.utils.deepClone(v)
+    if (rolldata.attributes) {
+      for (let [k, v] of Object.entries(rolldata.attributes)) {
+        rolldata[k] = foundry.utils.deepClone(v)
       }
     }
 
     // Add level for easier access, or fall back to 0.
-    if (data.level) {
-      data.lvl = data.level.value ?? 0
+    if (rolldata.level) {
+      rolldata.lvl = rolldata.level.value ?? 0
     }
   }
 
   /**
    * Prepare NPC roll data.
    */
-  _getNpcRollData(data) {
-    if (this.data.type !== 'npc') return
+  _getNpcRollData(rolldata) {
+    if (this.type !== 'npc') return
 
     // Process additional NPC data here.
   }
 
   async _preCreate(data, options, user) {
     await super._preCreate(data, options, user)
-
+	console.log(data)
+	console.log(this)
     // Setup Tokens
     if (this.type === 'character' || this.type === 'robot') {
+		console.log("Update PC Tokens")
       this.data.token.update({ vision: true, actorLink: true, disposition: 1 })
     }
 
     if (this.type === 'creature') {
-      this.data.token.update({ disposition: -1 })
+		console.log("Update Creature Tokens")
+      //this.data.token.update({ disposition: 0 })
     }
 
     // Add Skills to Characters and Robots
     if (this.type === 'character' || this.type === 'robot') {
-      let packSkills = await game.packs.get('fallout.skills').getDocuments()
+		console.log("Add Skills to PCs")
+      let packSkills = await game.packs.get('fallout-dusty.skills').getDocuments()
       const items = this.items.map((i) => i.toObject())
       packSkills.forEach((s) => {
         items.push(s.toObject())

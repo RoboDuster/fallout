@@ -30,7 +30,7 @@ export class FalloutItem extends Item {
     // If present, return the actor's roll data.
     if (!this.actor) return null;
     const rollData = this.actor.getRollData();
-    rollData.item = foundry.utils.deepClone(this.data.data);
+    rollData.item = foundry.utils.deepClone(this.system);
 
     return rollData;
   }
@@ -80,8 +80,8 @@ export class FalloutItem extends Item {
    * @private
    */
   async sendToChat(){    
-    const itemData = duplicate(this.data);
-    itemData.isPhysical = itemData.data.hasOwnProperty('weight')
+    const itemData = duplicate(this);
+    itemData.isPhysical = itemData.hasOwnProperty('weight')
     itemData.isSkill = itemData.type === "skill"
     itemData.isPerk = itemData.type === "perk"
     itemData.isWeapon = itemData.type === "weapon";
@@ -92,7 +92,7 @@ export class FalloutItem extends Item {
     itemData.isBook = itemData.type === "books_and_magz";
     itemData.isRobotArmor = itemData.type === "robot_armor";
 
-    const html = await renderTemplate("systems/fallout/templates/chat/item.html", itemData);
+    const html = await renderTemplate("systems/fallout-dusty/templates/chat/item.html", itemData);
     const chatData = {
         user: game.user.id,
         rollMode: game.settings.get("core", "rollMode"),

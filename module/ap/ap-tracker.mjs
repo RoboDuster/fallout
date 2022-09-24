@@ -12,7 +12,7 @@ export class APTracker extends Application {
     static get defaultOptions() {
         return mergeObject(super.defaultOptions, {
             title: "AP Tracker",
-            template: "systems/fallout/templates/ap/ap-tracker.html",
+            template: "systems/fallout-dusty/templates/ap/ap-tracker.html",
             classes: ["fallout", "ap-tracker"],
             id: "ap-tracker-app",
             popOut: false,
@@ -25,11 +25,11 @@ export class APTracker extends Application {
     getData() {
         super.getData();
         this.data["isGM"] = game.user.isGM;
-        this.data["partyAP"] = game.settings.get('fallout', 'partyAP');
-        this.data["gmAP"] = game.settings.get('fallout', 'gmAP');
-        this.data["maxAP"] = game.settings.get('fallout', 'maxAP');
-        this.data["showGMMomentumToPlayers"] = (game.user.isGM || game.settings.get('fallout', 'gmMomentumShowToPlayers')) ? true:false;
-        this.data["maxAppShowToPlayers"] = (game.user.isGM|| game.settings.get('fallout', 'maxAppShowToPlayers')) ? true:false;
+        this.data["partyAP"] = game.settings.get('fallout-dusty', 'partyAP');
+        this.data["gmAP"] = game.settings.get('fallout-dusty', 'gmAP');
+        this.data["maxAP"] = game.settings.get('fallout-dusty', 'maxAP');
+        this.data["showGMMomentumToPlayers"] = (game.user.isGM || game.settings.get('fallout-dusty', 'gmMomentumShowToPlayers')) ? true:false;
+        this.data["maxAppShowToPlayers"] = (game.user.isGM|| game.settings.get('fallout-dusty', 'maxAppShowToPlayers')) ? true:false;
         return this.data;
     }
 
@@ -54,8 +54,8 @@ export class APTracker extends Application {
         html.find('.ap-add, .ap-sub').click(ev => {
             const type = $(ev.currentTarget).parents('.ap-resource').attr('data-type');
             const change = $(ev.currentTarget).hasClass('ap-add') ? 1 : -1;
-            let currentValue = game.settings.get('fallout', type);
-            let maxAP = game.settings.get('fallout', 'maxAP');
+            let currentValue = game.settings.get('fallout-dusty', type);
+            let maxAP = game.settings.get('fallout-dusty', 'maxAP');
             if (parseInt(currentValue) < maxAP || parseInt(currentValue) > 0) {
                 let newValue = parseInt(currentValue) + change;
                 APTracker.setAP(type, newValue);
@@ -71,36 +71,36 @@ export class APTracker extends Application {
     static async setAP(type, value) {
         value = Math.round(value);
         if (!game.user.isGM) {
-            game.socket.emit('system.fallout', {
+            game.socket.emit('system.fallout-dusty', {
                 operation: 'setAP',
                 data: { 'value': value, 'type': type },
             });
             return;
         }
 
-        let maxAP = game.settings.get('fallout', 'maxAP');
-        let partyAP = game.settings.get('fallout', 'partyAP');
+        let maxAP = game.settings.get('fallout-dusty', 'maxAP');
+        let partyAP = game.settings.get('fallout-dusty', 'partyAP');
         if (partyAP > value && type === 'maxAP') {
-            await game.settings.set('fallout', 'maxAP', value);
-            await game.settings.set('fallout', 'partyAP', value);
+            await game.settings.set('fallout-dusty', 'maxAP', value);
+            await game.settings.set('fallout-dusty', 'partyAP', value);
             APTracker.renderApTracker();
-            game.socket.emit('system.fallout', { operation: 'updateAP' });
+            game.socket.emit('system.fallout-dusty', { operation: 'updateAP' });
             return;
         }
 
         if (value > maxAP && type === 'partyAP') {
-            await game.settings.set('fallout', type, maxAP);
+            await game.settings.set('fallout-dusty', type, maxAP);
             APTracker.renderApTracker();
         } else if (value < 0) {
-            await game.settings.set('fallout', type, 0);
+            await game.settings.set('fallout-dusty', type, 0);
             APTracker.renderApTracker();
         } else {
-            await game.settings.set('fallout', type, value);
+            await game.settings.set('fallout-dusty', type, value);
             APTracker.renderApTracker();
         }
 
         // emit socket event for the players to update
-        game.socket.emit('system.fallout', { operation: 'updateAP' });
+        game.socket.emit('system.fallout-dusty', { operation: 'updateAP' });
     }
 
     static updateAP() {
@@ -112,7 +112,7 @@ Hooks.once("ready", () => {
     if (APTracker._instance) return;
     let ap = new APTracker();
     APTracker.renderApTracker();
-    game.socket.on("system.fallout", (ev) => {
+    game.socket.on("system.fallout-dusty", (ev) => {
         if (ev.operation === "setAP") {
             if (game.user.isGM)
                 APTracker.setAP(ev.data.type, ev.data.value);

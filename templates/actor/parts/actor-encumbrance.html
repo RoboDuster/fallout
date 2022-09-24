@@ -1,0 +1,18 @@
+{{!-- ENCUMBRANCE --}}
+<div class="box no-padding" style="margin-top: 5px; margin-bottom: 0px;">
+    <div class="flexrow align-mid">
+        <div class="flex-center">
+            <label for="">{{actor.system.carryWeight.base}} .{{localize "FALLOUT.TEMPLATES.lbs"}} + </label>
+            <input type="number" name="actor.system.carryWeight.mod" class="num-short-2" value="{{actor.system.carryWeight.mod}}">
+            <label for=""> = {{localize "FALLOUT.TEMPLATES.MAX"}}: {{actor.system.carryWeight.value}} .{{localize
+                "FALLOUT.TEMPLATES.lbs"}}</label>
+        </div>
+        <div class="text-center">
+            <label>{{localize "FALLOUT.TEMPLATES.Encumbrance_Level"}}: {{actor.system.encumbranceLevel}}</label>
+        </div>
+        <div style="text-align: right;">
+            <label>{{localize "FALLOUT.TEMPLATES.Total"}}: {{actor.system.totalWeight}} / {{actor.system.carryWeight.value}} .{{localize
+                "FALLOUT.TEMPLATES.lbs"}}</label>
+        </div>
+    </div>
+</div>

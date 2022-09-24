@@ -1,11 +1,11 @@
 {
-  "name": "fallout",
-  "title": "Fallout 2d20",
-  "description": "The unofficial Fallout 2d20 System for FoundryVTT",
+  "name": "fallout-dusty",
+  "title": "Fallout 2d20 (Dusty Mod)",
+  "description": "The unofficial Fallout 2d20 System for FoundryVTT. Modified by RoboDusty",
   "version": "9.0.6",
-  "minimumCoreVersion": "9",
-  "compatibleCoreVersion": "9",
-  "author": "HappySteve",
+  "minimumCoreVersion": "10",
+  "compatibleCoreVersion": "10",
+  "author": "HappySteve, RoboDusty",
   "esmodules": [
     "module/fallout.mjs"
   ],
@@ -42,8 +42,8 @@
 	  }
     ],
   "socket": true,
-  "url": "https://github.com/superseva/fallout",
-  "manifest": "https://github.com/superseva/fallout/releases/latest/download/system.json",
-  "download": "https://github.com/superseva/fallout/releases/download/v9.0.6/fallout.zip",
+  "url": "https://github.com/RoboDuster/fallout-dusty",
+  "manifest": "https://github.com/RoboDuster/fallout-dusty/releases/latest/download/system.json",
+  "download": "https://github.com/RoboDuster/fallout-dusty/releases/download/v9.0.6/fallout.zip",
   "license": "LICENSE.txt"
 }

@@ -674,6 +674,8 @@
   background: rgba(245, 245, 220, 0.301);
   padding: 0 5px;
   border: 1px solid lightgray;
+  min-height: 200px;
+  height: 100%;
 }
 
 .fallout .description-field .editor {
@@ -682,6 +684,7 @@
 
 .fallout .editor .editor-content {
   min-height: 200px;
+  height: 100%;
 }
 
 .fallout .condition-box .pipboy-status-screen {
